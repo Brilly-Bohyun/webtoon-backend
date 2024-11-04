@@ -111,31 +111,32 @@ public class WebtoonDtService {
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 직원입니다."));
 
         //임시 업로드의 경우만 업데이트
-        if(findWebtoonDt.isFinalUploadYN() == false) {
+        if(findWebtoonDt.isFinalUploadYN() == true) {
+            throw new IllegalArgumentException("최종 업로드한 웹툰 회차입니다!");
+        }
 
-            findWebtoonDt.updateInfo(dto.getSubTitle(), dto.getContent(), findUser.getName());
+        findWebtoonDt.updateInfo(dto.getSubTitle(), dto.getContent(), findUser.getName());
 
-            //파일 업데이트
-            //만약 파일을 업데이트 하는 경우
-            if (thumbnailFile != null) {
-                // 기존의 저장된 가장 최근의 파일 상태 변경
-                fileService.changeStat(findWebtoonDt.getEpisodeFileId());
+        //파일 업데이트
+        //만약 파일을 업데이트 하는 경우
+        if (thumbnailFile != null) {
+            // 기존의 저장된 가장 최근의 파일 상태 변경
+            fileService.changeStat(findWebtoonDt.getEpisodeFileId());
 
-                File newThumbFile = fileService.save(thumbnailFile);
-                newThumbFile.updateFileWebtoonDt(findWebtoonDt);
-                findWebtoonDt.getFiles().add(newThumbFile);
-                findWebtoonDt.setThumbFileId(newThumbFile.getId());
-            }
-            if (episodeFile != null) {
-                // 기존의 저장된 가장 최근의 파일 상태 변경
-                File file = findWebtoonDt.getFiles().get(findWebtoonDt.getFiles().size()-1);
-                fileService.changeStat(file.getId());
+            File newThumbFile = fileService.save(thumbnailFile);
+            newThumbFile.updateFileWebtoonDt(findWebtoonDt);
+            findWebtoonDt.getFiles().add(newThumbFile);
+            findWebtoonDt.setThumbFileId(newThumbFile.getId());
+        }
+        if (episodeFile != null) {
+            // 기존의 저장된 가장 최근의 파일 상태 변경
+            File file = findWebtoonDt.getFiles().get(findWebtoonDt.getFiles().size()-1);
+            fileService.changeStat(file.getId());
 
-                File uploadFile = fileService.save(episodeFile);
-                uploadFile.updateFileWebtoonDt(findWebtoonDt);
-                findWebtoonDt.getFiles().add(uploadFile);
-                findWebtoonDt.setEpisodeFileId(uploadFile.getId());
-            }
+            File uploadFile = fileService.save(episodeFile);
+            uploadFile.updateFileWebtoonDt(findWebtoonDt);
+            findWebtoonDt.getFiles().add(uploadFile);
+            findWebtoonDt.setEpisodeFileId(uploadFile.getId());
         }
     }
 
@@ -157,10 +158,11 @@ public class WebtoonDtService {
    */
     @Transactional(readOnly = true)
     public List<FeedbackListDto> findFeedbackList(Long webtoonDtId) {
-        List<Message> feedbackList = messageService.getMessageListByRefId(webtoonDtId);
+        List<Message> feedbackList = messageService.getFeedbackList(webtoonDtId, "FEEDBACK");
 
         return feedbackList.stream()
                 .map(feedback -> FeedbackListDto.builder()
+                        .createdDate(feedback.getCreatedDate())
                         .content(feedback.getContent())
                         .sendUserName(feedback.getSendUser().getName())
                         .sendUserEmployeeId(feedback.getSendUser().getEmployeeId())
@@ -184,11 +186,12 @@ public class WebtoonDtService {
         messageService.save(feedbackMsg);
 
         //메시지 저장
-        Webtoon webtoon = webtoonRepository.findById(feedbackMsg.getRefId())
-                .orElseThrow(() -> new EntityNotFoundException("웹툰 정보가 존재하지 않습니다."));
+        WebtoonDt webtoonDt = webtoonDtRepository.findById(dto.getRefId())
+                .orElseThrow(() -> new EntityNotFoundException("해당하는 웹툰 회차 정보가 존재하지 않습니다."));
 
         String originContent = feedbackMsg.getContent();
-        dto.setContent(webtoon.getTitle() + "에 피드백이 등록되었습니다. \n\n" + originContent);
+        dto.setContent(webtoonDt.getWebtoon().getTitle() + "에 피드백이 등록되었습니다. \n\n" + originContent);
+        dto.setMsgType("WT");
         Message message = dto.toEntity(sendUser);
         messageService.addMsg(message);
     }

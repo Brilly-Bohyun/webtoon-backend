@@ -31,11 +31,28 @@ public class UserResponseDto {
 
     private int dayOff;     // 연차개수
 
-    private String photoName;
+    private String photo;
 
     private List<QualificationResponseDto> qualifications;     // 자격증들
 
     public static UserResponseDto of(User findUser, List<QualificationResponseDto> qualificationList) {
+
+        if (findUser.getFile() == null){
+            return UserResponseDto.builder()
+                    .employeeId(findUser.getEmployeeId())
+                    .name(findUser.getName())
+                    .email(findUser.getEmail())
+                    .tel(findUser.getTel())
+                    .birthDate(findUser.getBirthDate())
+                    .deptName(findUser.getDeptName())
+                    .teamNum(findUser.getTeamNum())
+                    .position(findUser.getPosition())
+                    .joinDate(findUser.getJoinDate())
+                    .dayOff(findUser.getDayOff())
+                    .photo(null)
+                    .qualifications(qualificationList)
+                    .build();
+        }
         return UserResponseDto.builder()
                 .employeeId(findUser.getEmployeeId())
                 .name(findUser.getName())
@@ -47,7 +64,7 @@ public class UserResponseDto {
                 .position(findUser.getPosition())
                 .joinDate(findUser.getJoinDate())
                 .dayOff(findUser.getDayOff())
-                .photoName(findUser.getFile().getFileName())
+                .photo(findUser.getFile().getFileName())
                 .qualifications(qualificationList)
                 .build();
     }

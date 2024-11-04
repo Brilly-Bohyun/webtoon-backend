@@ -1,5 +1,6 @@
 package com.erp.webtoon.service;
 
+import com.erp.webtoon.domain.File;
 import com.erp.webtoon.domain.Pay;
 import com.erp.webtoon.domain.Qualification;
 import com.erp.webtoon.domain.User;
@@ -22,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.persistence.EntityNotFoundException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +37,8 @@ public class PayService {
     private final PayRepository payRepository;
     private final UserRepository userRepository;
     private final QualificationRepository qualificationRepository;
+
+    private final FileService fileService;
 
     /**
      * 월 급여 등록
@@ -54,12 +59,19 @@ public class PayService {
     /**
      * 급여 조회 -> 이때 직원 정보도 같이 조회해야함 + 급여 list
      */
-    public PayResponseDto search(String employeeId) {
+    public PayResponseDto search(String employeeId) throws MalformedURLException {
         User findUser = userRepository.findByEmployeeId(employeeId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 사번입니다."));
 
+        File userFile = findUser.getFile();
+        String fullPath = "";
+        if (userFile != null) {
+            fullPath = fileService.getFullPath(userFile.getFileName());
+        }
+
         //유저 정보
-        PayUserResponseDto userInfoDto = new PayUserResponseDto(findUser);
+        PayUserResponseDto userInfoDto = new PayUserResponseDto(findUser, fullPath);
+
 
         //자격 수당 리스트
         List<PayQualificationDto> qualificationDtos = findUser.getQualifications().stream()
